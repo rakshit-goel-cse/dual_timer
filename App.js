@@ -4,13 +4,50 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Constant } from "./components/Constants";
 import { WorkTimer } from "./components/WorkTimer";
 import { ResetTimer } from "./components/RestTimer";
+import { Audio } from 'expo-av';
 
+let timeoutId=null;
 export default function App() {
   const [state, setState] = useState(Constant.reset);
   const [WorkTime, setWorkTime] = useState(0);
   const [RestTime, setRestTime] = useState(0);
   const [timerState, setTimerState] = useState(Constant.timerWork);
   const [timeArray, setTimeArray] = useState([0,0]);
+  const [soundLoc,setSoundLoc]= useState("./assets/defaultTone.mp3");
+  const [sound, setSound] = useState();
+
+  useEffect(() => {
+    async function loadSound() {
+      try{
+      const { sound } = await Audio.Sound.createAsync(
+        require("./assets/defaultTone.mp3")
+      );
+      setSound(sound);
+  } catch (error) {
+    console.error('Failed to load sound:', error); // Log error if sound loading fails
+  }
+    }
+    loadSound();
+
+    return () => {
+      if (sound) {
+        console.log("reset sound");
+       // sound.unloadAsync(); // Unload the sound when the component unmounts
+      }
+    };
+  }, [soundLoc]);
+
+  const playSound = async () => {
+    if (sound) {
+      await sound.replayAsync(); // Replay the sound
+    }
+  };
+
+  const stopSound = async () => {
+    if (sound) {
+      await sound.stopAsync(); // Stop the sound
+    }
+  };
 
   useEffect(() => {
     let interval;
@@ -28,11 +65,10 @@ export default function App() {
                 return prevWorkTime - 1;
             } else {
                 Swap();
-                //return prevWorkTime;
+                return 0;
             }
         });
       }
-
         //rest
         else if(timerState==Constant.timerBreak){
           setRestTime(prevRestTime => {
@@ -40,7 +76,7 @@ export default function App() {
                 return prevRestTime - 1;
             } else {
                 Swap();
-                //return prevRestTime;
+                return 0;
             }
         });
       }
@@ -51,6 +87,28 @@ export default function App() {
     }
     return () => clearInterval(interval);
   }, [timerState,state]);
+
+const swapLogic=()=>{
+  console.log(state==Constant.start);
+  if(state==Constant.start){
+    if(timerState==Constant.timerWork){
+      setTimerState(Constant.timerBreak);
+      setWorkTime(timeArray[0]);
+    }
+    else if(timerState==Constant.timerBreak){
+      setTimerState(Constant.timerWork);
+      setRestTime(timeArray[1]);
+    } 
+  }
+}
+
+  const Swap = () =>{
+    playSound(); // Set playSound to true to trigger sound playback
+    setTimeout(() => {
+      stopSound(); // Set playSound back to false after 5 seconds to stop the sound
+      swapLogic();
+    }, 3000);    
+  }
   
   const StartPause = () => {
     if (WorkTime > 0 && RestTime > 0) {
@@ -68,36 +126,35 @@ export default function App() {
 
   const Reset = () => {
     //console.log("reset");
+    clearTimeout();
+    setTimeArray([0,0]);
     setWorkTime(0);
     setRestTime(0);
     setState(Constant.reset);
     setTimerState(Constant.timerWork);
   };
 
-  const Swap = () =>{
-      if(timerState==Constant.timerWork){
-        setTimerState(Constant.timerBreak);
-        setWorkTime(timeArray[0]);
-      }
-      else if(timerState==Constant.timerBreak){
-        setTimerState(Constant.timerWork);
-        setRestTime(timeArray[1]);
-      }   
-  }
+  
 
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1 }}>
+        <Text style={styles.LocText}>{soundLoc}</Text>
+        
+        <View style={{flex:5,justifyContent:"space-between",alignItems:"center"}}>
         <WorkTimer time={WorkTime} setTime={setWorkTime} state={state} timerState={timerState} swap={Swap}/>
+        <Text style={styles.StateText}>{timerState==Constant.timerBreak?"Break":"Work"}</Text>
         <ResetTimer time={RestTime} setTime={setRestTime} state={state} timerState={timerState} swap={Swap}/>
+        </View>
 
         <View
           style={{
-            position: "absolute",
-            bottom: 0, // Positioned at the bottom of the screen
-            left: 0, // Aligning it to the left edge
-            right: 0, // Aligning it to the right edge
+            //position: "absolute",
+            //bottom: 0, // Positioned at the bottom of the screen
+            //left: 0, // Aligning it to the left edge
+            //right: 0, // Aligning it to the right edge
+            flex:1,
             justifyContent: "space-between",
             flexDirection: "row",
             maxHeight: 50,
@@ -144,4 +201,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     margin: 10,
   },
+  StateText:{
+    
+  },
+  LocText:{
+    flex:1,
+    maxHeight: 50,
+    alignSelf:"center",
+  }
 });
