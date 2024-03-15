@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Constant } from "./components/Constants";
 import { WorkTimer } from "./components/WorkTimer";
 import { ResetTimer } from "./components/RestTimer";
+import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 
 let timeoutId=null;
@@ -13,15 +14,26 @@ export default function App() {
   const [RestTime, setRestTime] = useState(0);
   const [timerState, setTimerState] = useState(Constant.timerWork);
   const [timeArray, setTimeArray] = useState([0,0]);
-  const [soundLoc,setSoundLoc]= useState("./assets/defaultTone.mp3");
+  const [soundLoc,setSoundLoc]= useState(null);
   const [sound, setSound] = useState();
 
   useEffect(() => {
     async function loadSound() {
       try{
-      const { sound } = await Audio.Sound.createAsync(
+      let sound ;
+      if(soundLoc && soundLoc.uri){
+        const tempSound = await Audio.Sound.createAsync(
+          { uri: soundLoc.uri },
+          { shouldPlay: false }
+        );
+        sound=tempSound.sound;
+      }else{
+        const tempSound = await Audio.Sound.createAsync(
         require("./assets/defaultTone.mp3")
       );
+      sound=tempSound.sound;
+      }
+      console.log("Sound- ",sound);
       setSound(sound);
   } catch (error) {
     console.error('Failed to load sound:', error); // Log error if sound loading fails
@@ -39,7 +51,7 @@ export default function App() {
 
   const playSound = async () => {
     if (sound) {
-      await sound.replayAsync(); // Replay the sound
+      await sound.playAsync(); // Replay the sound
     }
   };
 
@@ -134,13 +146,25 @@ const swapLogic=()=>{
     setTimerState(Constant.timerWork);
   };
 
-  
-
+    const FilePicker = async () => {
+      try {
+        const res = await DocumentPicker.getDocumentAsync({
+          type: 'audio/*',
+        });
+        setSoundLoc(res.assets[0]);
+        console.log('Selected file:', res.assets[0]);
+      } catch (err) {
+          console.error('Error while selecting the file:', err);
+        }
+      }
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1 }}>
-        <Text style={styles.LocText}>{soundLoc}</Text>
+        <TouchableOpacity style={styles.LocText}
+        onPress={()=>FilePicker()}>
+          <Text>{soundLoc?soundLoc.name:"Default"}</Text>
+        </TouchableOpacity>
         
         <View style={{flex:5,justifyContent:"space-between",alignItems:"center"}}>
         <WorkTimer time={WorkTime} setTime={setWorkTime} state={state} timerState={timerState} swap={Swap}/>
