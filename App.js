@@ -163,16 +163,24 @@ export default function App() {
   };
 
   const StartPause = () => {
+    console.log("startpause- ",state,WorkTime,RestTime);
     if (WorkTime > 0 && RestTime > 0) {
       if (state == Constant.start) {
         setState(Constant.pause);
       } else if (state == Constant.pause) {
+        stopSound();
         setState(Constant.start);
       } else {
         setState(Constant.start);
         setTimeArray([WorkTime, RestTime]);
       }
+    } else if (state == Constant.start && (WorkTime === 0 || RestTime === 0)) {
+      stopSound();
+      swapLogic();
+      setState(Constant.pause);
+      intervalGap? clearInterval(intervalGap):null;
     }
+    
   };
 
   const Reset = () => {
@@ -203,7 +211,7 @@ export default function App() {
       <SafeAreaView style={{ flex: 1, backgroundColor:"#6C0BA9" }}>
         
       <View style={styles.header}>
-        <TouchableOpacity style={styles.LocText} onPress={() => FilePicker()}>
+        <TouchableOpacity style={styles.LocText} onPress={() => state==Constant.reset ? FilePicker() :null}>
           <Text style={{color:"yellow",}}>{soundLoc ? soundLoc.name : "Default"}</Text>
         </TouchableOpacity>
         {/*cancel selected Tone*/}
