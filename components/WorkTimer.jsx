@@ -14,7 +14,7 @@ export const WorkTimer=({time,setTime,state,timerState})=>{
             justifyContent: "center",
             alignItems: "center",
         }}>
-            <TextInput style={{color:"white",fontWeight:"bold",fontSize:30}}
+            <TextInput style={{color:"white",fontWeight:"bold",fontSize:30, textAlign: 'right',}}
             onChange={(temp)=>setTime(temp.nativeEvent.text)}
             placeholder="0"
             placeholderTextColor="white"
